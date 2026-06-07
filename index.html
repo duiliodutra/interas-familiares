@@ -917,6 +917,8 @@ function renderResumo() {
     const pagou = pagouMap[pid] || 0;
     const devePagar = deveMap[pid] || 0;
     const aReceber = pagou - devePagar;
+    const cor = aReceber >= 0 ? 'var(--accent)' : 'var(--danger)';
+    const label = aReceber >= 0 ? 'a receber' : 'a pagar';
     return `
       <div style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 0;border-bottom:1px solid var(--border)">
         <div class="avatar" style="background:var(--accent-light);color:var(--accent)">${initials(nome)}</div>
@@ -925,8 +927,8 @@ function renderResumo() {
           <div style="font-size:.75rem;color:var(--text3)">Pagou ${fmtMoney(pagou)} · sua parte ${fmtMoney(devePagar)}</div>
         </div>
         <div style="text-align:right">
-          <div style="font-family:'DM Mono',monospace;font-weight:600;font-size:.95rem;color:var(--accent)">${fmtMoney(aReceber)}</div>
-          <div style="font-size:.72rem;color:var(--accent)">a receber</div>
+          <div style="font-family:'DM Mono',monospace;font-weight:600;font-size:.95rem;color:${cor}">${fmtMoney(Math.abs(aReceber))}</div>
+          <div style="font-size:.72rem;color:${cor}">${label}</div>
         </div>
       </div>`;
   }).join('') : '<p style="font-size:.85rem;color:var(--text3);padding:0.5rem 0">Nenhum pagador registrado ainda.</p>';
