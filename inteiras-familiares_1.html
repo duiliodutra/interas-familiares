@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inteiras Familiares</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F5F0;
+    --surface: #FFFFFF;
+    --surface2: #F0EDE7;
+    --border: #E2DDD6;
+    --text: #1A1714;
+    --text2: #6B6560;
+    --text3: #9E9993;
+    --accent: #2D6A4F;
+    --accent-light: #D8EEE4;
+    --accent2: #C77D3E;
+    --accent2-light: #FAECD8;
+    --danger: #B53030;
+    --danger-light: #FCEDED;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* LAYOUT */
+  .app { display: flex; min-height: 100vh; }
+  .sidebar { width: 260px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 100; transition: transform 0.3s; }
+  .main { margin-left: 260px; flex: 1; padding: 2rem; max-width: 960px; }
+
+  /* SIDEBAR */
+  .sidebar-header { padding: 1.5rem; border-bottom: 1px solid var(--border); }
+  .logo { font-size: 1.1rem; font-weight: 600; color: var(--accent); letter-spacing: -0.02em; }
+  .logo span { color: var(--text3); font-weight: 400; }
+  .sidebar-nav { flex: 1; padding: 1rem 0; overflow-y: auto; }
+  .nav-section { padding: 0.5rem 1rem 0.25rem; font-size: 0.7rem; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+  .nav-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 1rem; cursor: pointer; color: var(--text2); font-size: 0.875rem; border-radius: 0; transition: all 0.15s; border: none; background: none; width: 100%; text-align: left; }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .month-selector { padding: 1rem; border-top: 1px solid var(--border); }
+  .month-selector select { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface2); font-family: inherit; font-size: 0.875rem; color: var(--text); cursor: pointer; }
+
+  /* HEADER */
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+  .page-title { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.03em; }
+  .page-subtitle { font-size: 0.875rem; color: var(--text3); margin-top: 0.15rem; }
+
+  /* BUTTONS */
+  .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.55rem 1.1rem; border-radius: var(--radius-sm); font-family: inherit; font-size: 0.875rem; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #235c41; }
+  .btn-secondary { background: var(--surface); border-color: var(--border); color: var(--text2); }
+  .btn-secondary:hover { background: var(--surface2); color: var(--text); }
+  .btn-danger { background: var(--danger-light); color: var(--danger); border-color: transparent; }
+  .btn-danger:hover { background: #f5d0d0; }
+  .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.8rem; }
+  .btn-icon { padding: 0.4rem; border-radius: var(--radius-sm); background: none; border: 1px solid var(--border); cursor: pointer; color: var(--text3); transition: all 0.15s; display: inline-flex; align-items: center; }
+  .btn-icon:hover { background: var(--surface2); color: var(--text); }
+  .btn-icon.danger:hover { background: var(--danger-light); color: var(--danger); border-color: var(--danger-light); }
+
+  /* CARDS */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1rem; }
+  .card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1rem; gap: 1rem; }
+  .card-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+
+  /* BLOCO (evento) */
+  .bloco { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 1.25rem; overflow: hidden; }
+  .bloco-header { padding: 1.25rem 1.5rem; display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; cursor: pointer; }
+  .bloco-header:hover { background: var(--surface2); }
+  .bloco-title { font-size: 1rem; font-weight: 600; letter-spacing: -0.02em; }
+  .bloco-meta { display: flex; gap: 0.75rem; margin-top: 0.35rem; flex-wrap: wrap; }
+  .badge { display: inline-flex; align-items: center; padding: 0.2rem 0.6rem; border-radius: 100px; font-size: 0.75rem; font-weight: 500; }
+  .badge-green { background: var(--accent-light); color: var(--accent); }
+  .badge-amber { background: var(--accent2-light); color: var(--accent2); }
+  .badge-gray { background: var(--surface2); color: var(--text2); }
+  .bloco-body { border-top: 1px solid var(--border); }
+  .bloco-section { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); }
+  .bloco-section:last-child { border-bottom: none; }
+  .section-title { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+
+  /* CONTA ITEM */
+  .conta-item { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--border); gap: 1rem; }
+  .conta-item:last-child { border-bottom: none; }
+  .conta-desc { font-size: 0.9rem; flex: 1; }
+  .conta-valor { font-family: 'DM Mono', monospace; font-size: 0.9rem; font-weight: 500; color: var(--accent); }
+  .conta-data { font-size: 0.75rem; color: var(--text3); }
+
+  /* ENVOLVIDOS */
+  .envolvido-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-light); color: var(--accent); font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .envolvido-info { flex: 1; }
+  .envolvido-name { font-size: 0.875rem; font-weight: 500; }
+  .envolvido-pct { font-size: 0.75rem; color: var(--text3); }
+  .envolvido-valor { font-family: 'DM Mono', monospace; font-size: 0.875rem; font-weight: 500; }
+
+  /* SUMMARY CARDS */
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+  .summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+  .summary-label { font-size: 0.75rem; color: var(--text3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.35rem; }
+  .summary-value { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.03em; font-family: 'DM Mono', monospace; }
+  .summary-value.green { color: var(--accent); }
+
+  /* PESSOAS */
+  .pessoas-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+  .pessoa-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; display: flex; align-items: center; gap: 0.75rem; }
+  .pessoa-info { flex: 1; }
+  .pessoa-name { font-size: 0.9rem; font-weight: 500; }
+  .pessoa-sub { font-size: 0.75rem; color: var(--text3); }
+
+  /* MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+  .modal { background: var(--surface); border-radius: var(--radius); width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+  .modal-header { padding: 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-title { font-size: 1.1rem; font-weight: 600; }
+  .modal-body { padding: 1.5rem; }
+  .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.75rem; }
+
+  /* FORM */
+  .form-group { margin-bottom: 1rem; }
+  .form-label { display: block; font-size: 0.8rem; font-weight: 500; color: var(--text2); margin-bottom: 0.35rem; }
+  .form-control { width: 100%; padding: 0.6rem 0.85rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; font-size: 0.9rem; color: var(--text); background: var(--surface); transition: border-color 0.15s; }
+  .form-control:focus { outline: none; border-color: var(--accent); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-hint { font-size: 0.75rem; color: var(--text3); margin-top: 0.25rem; }
+
+  /* ENVOLVIDOS PICKER */
+  .envolvidos-picker { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+  .envolvido-pick { display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); }
+  .envolvido-pick:last-child { border-bottom: none; }
+  .envolvido-pick input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; }
+  .envolvido-pick-name { flex: 1; font-size: 0.875rem; }
+  .envolvido-pick input[type=number] { width: 70px; padding: 0.3rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: 'DM Mono', monospace; font-size: 0.85rem; text-align: right; }
+  .pct-total { font-size: 0.8rem; padding: 0.5rem 1rem; background: var(--surface2); color: var(--text2); display: flex; justify-content: space-between; border-top: 1px solid var(--border); }
+  .pct-total.ok { color: var(--accent); }
+  .pct-total.bad { color: var(--danger); }
+
+  /* TOAST */
+  .toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem; }
+  .toast { background: var(--text); color: white; padding: 0.75rem 1.25rem; border-radius: var(--radius-sm); font-size: 0.875rem; animation: slideIn 0.3s ease; max-width: 320px; }
+  .toast.success { background: var(--accent); }
+  .toast.error { background: var(--danger); }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+  /* EMPTY STATE */
+  .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text3); }
+  .empty-state svg { width: 48px; height: 48px; margin: 0 auto 1rem; opacity: 0.4; }
+  .empty-state h3 { font-size: 1rem; font-weight: 500; color: var(--text2); margin-bottom: 0.5rem; }
+
+  /* LOADING */
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* MOBILE */
+  .menu-toggle { display: none; position: fixed; top: 1rem; left: 1rem; z-index: 200; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.5rem; cursor: pointer; }
+  .overlay-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 90; }
+
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; padding: 1rem; padding-top: 4rem; }
+    .menu-toggle { display: flex; }
+    .overlay-bg.show { display: block; }
+    .form-row { grid-template-columns: 1fr; }
+    .summary-grid { grid-template-columns: 1fr 1fr; }
+    .page-header { flex-direction: column; align-items: flex-start; }
+  }
+
+  /* FIREBASE CONFIG */
+  .config-screen { max-width: 480px; margin: 4rem auto; }
+  .config-screen .card { padding: 2rem; }
+  .config-screen h2 { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.5rem; }
+  .config-screen p { font-size: 0.875rem; color: var(--text2); margin-bottom: 1.5rem; }
+  .config-step { background: var(--surface2); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1rem; font-size: 0.875rem; }
+  .config-step ol { padding-left: 1.25rem; margin-top: 0.5rem; }
+  .config-step li { margin-bottom: 0.35rem; color: var(--text2); }
+  code { font-family: 'DM Mono', monospace; background: var(--border); padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.82em; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- Firebase Config Screen -->
+<div id="configScreen" class="config-screen hidden">
+  <div class="card">
+    <h2>🔥 Configurar Firebase</h2>
+    <p>Para usar o app, você precisa de um projeto Firebase gratuito. Siga os passos:</p>
+    <div class="config-step">
+      <strong>Como obter as credenciais:</strong>
+      <ol>
+        <li>Acesse <strong>console.firebase.google.com</strong></li>
+        <li>Crie um projeto (ou use um existente)</li>
+        <li>Vá em <strong>Configurações → Aplicativos web</strong> e registre um app</li>
+        <li>Copie a <code>firebaseConfig</code></li>
+        <li>No menu lateral, ative <strong>Firestore Database</strong> (modo teste)</li>
+      </ol>
+    </div>
+    <div class="form-group">
+      <label class="form-label">API Key</label>
+      <input class="form-control" id="cfg-apiKey" placeholder="AIzaSy...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Auth Domain</label>
+      <input class="form-control" id="cfg-authDomain" placeholder="meu-projeto.firebaseapp.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Project ID</label>
+      <input class="form-control" id="cfg-projectId" placeholder="meu-projeto-12345">
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="saveConfig()">Salvar e Conectar</button>
+  </div>
+</div>
+
+<!-- App -->
+<div id="appRoot" class="hidden">
+  <button class="menu-toggle" onclick="toggleSidebar()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div class="overlay-bg" id="overlayBg" onclick="toggleSidebar()"></div>
+
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">Inteiras <span>Familiares</span></div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">Menu</div>
+        <button class="nav-item active" id="nav-blocos" onclick="showPage('blocos')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Blocos de Eventos
+        </button>
+        <button class="nav-item" id="nav-pessoas" onclick="showPage('pessoas')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Pessoas
+        </button>
+        <button class="nav-item" id="nav-resumo" onclick="showPage('resumo')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          Resumo Mensal
+        </button>
+        <button class="nav-item" id="nav-config" onclick="showPage('config')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Firebase
+        </button>
+      </nav>
+      <div class="month-selector">
+        <label class="form-label">Mês de referência</label>
+        <select id="monthSelect" onchange="changeMonth()"></select>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- BLOCOS PAGE -->
+      <div id="page-blocos">
+        <div class="page-header">
+          <div>
+            <div class="page-title" id="blocos-title">Blocos de Eventos</div>
+            <div class="page-subtitle" id="blocos-subtitle">Mês atual</div>
+          </div>
+          <button class="btn btn-primary" onclick="openBlocoModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Novo Bloco
+          </button>
+        </div>
+        <div id="blocos-list"><div class="empty-state"><p>Carregando...</p></div></div>
+      </div>
+
+      <!-- PESSOAS PAGE -->
+      <div id="page-pessoas" class="hidden">
+        <div class="page-header">
+          <div><div class="page-title">Pessoas</div><div class="page-subtitle">Gerencie os participantes</div></div>
+          <button class="btn btn-primary" onclick="openPessoaModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nova Pessoa
+          </button>
+        </div>
+        <div id="pessoas-list" class="pessoas-grid"></div>
+      </div>
+
+      <!-- RESUMO PAGE -->
+      <div id="page-resumo" class="hidden">
+        <div class="page-header">
+          <div><div class="page-title">Resumo Mensal</div><div class="page-subtitle" id="resumo-subtitle">Totais do mês</div></div>
+        </div>
+        <div class="summary-grid" id="resumo-cards"></div>
+        <div id="resumo-pessoas"></div>
+      </div>
+
+      <!-- CONFIG PAGE -->
+      <div id="page-config" class="hidden">
+        <div class="page-header">
+          <div><div class="page-title">Configurações Firebase</div><div class="page-subtitle">Altere as credenciais</div></div>
+        </div>
+        <div class="card">
+          <div class="form-group">
+            <label class="form-label">API Key</label>
+            <input class="form-control" id="edit-apiKey" placeholder="AIzaSy...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Auth Domain</label>
+            <input class="form-control" id="edit-authDomain" placeholder="meu-projeto.firebaseapp.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Project ID</label>
+            <input class="form-control" id="edit-projectId" placeholder="meu-projeto-12345">
+          </div>
+          <button class="btn btn-primary" onclick="updateConfig()">Salvar Configurações</button>
+          <button class="btn btn-danger" style="margin-left:0.5rem" onclick="clearConfig()">Limpar e Reconectar</button>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- MODALS -->
+<!-- Bloco Modal -->
+<div id="blocoModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="blocoModalTitle">Novo Bloco</div>
+      <button class="btn-icon" onclick="closeModal('blocoModal')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="bloco-id">
+      <div class="form-group">
+        <label class="form-label">Nome do bloco *</label>
+        <input class="form-control" id="bloco-nome" placeholder="Ex: Chácara fim de semana">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Data início</label>
+          <input class="form-control" type="date" id="bloco-data-inicio">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data fim</label>
+          <input class="form-control" type="date" id="bloco-data-fim">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descrição</label>
+        <input class="form-control" id="bloco-desc" placeholder="Descrição adicional (opcional)">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('blocoModal')">Cancelar</button>
+      <button class="btn btn-primary" id="blocoSaveBtn" onclick="saveBloco()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Conta Modal -->
+<div id="contaModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="contaModalTitle">Nova Conta</div>
+      <button class="btn-icon" onclick="closeModal('contaModal')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="conta-id">
+      <input type="hidden" id="conta-bloco-id">
+      <div class="form-group">
+        <label class="form-label">Descrição *</label>
+        <input class="form-control" id="conta-desc" placeholder="Ex: Mercado Extra">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Valor (R$) *</label>
+          <input class="form-control" type="number" step="0.01" id="conta-valor" placeholder="0,00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data</label>
+          <input class="form-control" type="date" id="conta-data">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('contaModal')">Cancelar</button>
+      <button class="btn btn-primary" id="contaSaveBtn" onclick="saveConta()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Envolvidos Modal -->
+<div id="envolvidosModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Envolvidos</div>
+      <button class="btn-icon" onclick="closeModal('envolvidosModal')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="env-bloco-id">
+      <p style="font-size:0.875rem;color:var(--text2);margin-bottom:1rem;">Selecione os participantes e defina a porcentagem de cada um (total deve ser 100%).</p>
+      <div id="envolvidos-picker" class="envolvidos-picker"></div>
+      <div class="pct-total" id="pct-total-bar">
+        <span>Total das porcentagens</span><span id="pct-total-val">0%</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('envolvidosModal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEnvolvidos()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pessoa Modal -->
+<div id="pessoaModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="pessoaModalTitle">Nova Pessoa</div>
+      <button class="btn-icon" onclick="closeModal('pessoaModal')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pessoa-id">
+      <div class="form-group">
+        <label class="form-label">Nome *</label>
+        <input class="form-control" id="pessoa-nome" placeholder="Nome completo">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('pessoaModal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePessoa()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, getDocs, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+window._fb = { initializeApp, getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, getDocs, setDoc };
+
+// STATE
+let db = null;
+let pessoas = [];
+let blocos = [];
+let currentMonth = '';
+let currentUnsubBlocos = null;
+let currentUnsubPessoas = null;
+let editingBlocoId = null;
+let editingContaId = null;
+let editingEnvBlocoId = null;
+let expandedBlocos = new Set();
+
+// UTILS
+window.showToast = function(msg, type='') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+};
+
+window.fmtMoney = v => 'R$ ' + parseFloat(v||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+window.fmtDate = d => d ? new Date(d+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : '';
+window.initials = name => name.split(' ').map(p=>p[0]).join('').substring(0,2).toUpperCase();
+
+function getMonths() {
+  const months = [];
+  const now = new Date();
+  for (let i = -6; i <= 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    months.push(d.toISOString().substring(0,7));
+  }
+  return months;
+}
+
+function populateMonthSelect() {
+  const sel = document.getElementById('monthSelect');
+  const months = getMonths();
+  const now = new Date().toISOString().substring(0,7);
+  sel.innerHTML = months.map(m => {
+    const [y, mo] = m.split('-');
+    const label = new Date(+y, +mo-1, 1).toLocaleDateString('pt-BR', {month:'long', year:'numeric'});
+    return `<option value="${m}" ${m===currentMonth?'selected':''}>${label.charAt(0).toUpperCase()+label.slice(1)}</option>`;
+  }).join('');
+}
+
+function monthLabel(m) {
+  const [y, mo] = m.split('-');
+  const l = new Date(+y, +mo-1, 1).toLocaleDateString('pt-BR', {month:'long', year:'numeric'});
+  return l.charAt(0).toUpperCase() + l.slice(1);
+}
+
+// CONFIG
+window.saveConfig = function() {
+  const cfg = {
+    apiKey: document.getElementById('cfg-apiKey').value.trim(),
+    authDomain: document.getElementById('cfg-authDomain').value.trim(),
+    projectId: document.getElementById('cfg-projectId').value.trim(),
+  };
+  if (!cfg.apiKey || !cfg.projectId) { showToast('Preencha todos os campos', 'error'); return; }
+  localStorage.setItem('fb_config', JSON.stringify(cfg));
+  location.reload();
+};
+
+window.updateConfig = function() {
+  const cfg = {
+    apiKey: document.getElementById('edit-apiKey').value.trim(),
+    authDomain: document.getElementById('edit-authDomain').value.trim(),
+    projectId: document.getElementById('edit-projectId').value.trim(),
+  };
+  if (!cfg.apiKey || !cfg.projectId) { showToast('Preencha todos os campos', 'error'); return; }
+  localStorage.setItem('fb_config', JSON.stringify(cfg));
+  showToast('Configurações salvas! Recarregando...', 'success');
+  setTimeout(() => location.reload(), 1000);
+};
+
+window.clearConfig = function() {
+  if (!confirm('Limpar configurações do Firebase?')) return;
+  localStorage.removeItem('fb_config');
+  location.reload();
+};
+
+// NAVIGATION
+window.showPage = function(page) {
+  ['blocos','pessoas','resumo','config'].forEach(p => {
+    document.getElementById(`page-${p}`).classList.add('hidden');
+    document.getElementById(`nav-${p}`).classList.remove('active');
+  });
+  document.getElementById(`page-${page}`).classList.remove('hidden');
+  document.getElementById(`nav-${page}`).classList.add('active');
+  if (page === 'resumo') renderResumo();
+  if (window.innerWidth <= 768) toggleSidebar();
+};
+
+window.toggleSidebar = function() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlayBg').classList.toggle('show');
+};
+
+window.changeMonth = function() {
+  currentMonth = document.getElementById('monthSelect').value;
+  updateBlocosHeader();
+  subscribeBlocos();
+};
+
+function updateBlocosHeader() {
+  document.getElementById('blocos-title').textContent = 'Blocos de Eventos';
+  document.getElementById('blocos-subtitle').textContent = monthLabel(currentMonth);
+  document.getElementById('resumo-subtitle').textContent = monthLabel(currentMonth);
+}
+
+// PESSOAS
+function subscribePessoas() {
+  if (currentUnsubPessoas) currentUnsubPessoas();
+  const { collection, onSnapshot } = window._fb;
+  currentUnsubPessoas = onSnapshot(collection(db, 'pessoas'), snap => {
+    pessoas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    pessoas.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    renderPessoas();
+    renderBlocos();
+  });
+}
+
+function renderPessoas() {
+  const el = document.getElementById('pessoas-list');
+  if (!pessoas.length) {
+    el.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><h3>Nenhuma pessoa cadastrada</h3><p>Clique em "Nova Pessoa" para começar</p></div>`;
+    return;
+  }
+  el.innerHTML = pessoas.map(p => `
+    <div class="pessoa-card">
+      <div class="avatar">${initials(p.nome)}</div>
+      <div class="pessoa-info">
+        <div class="pessoa-name">${p.nome}</div>
+      </div>
+      <div style="display:flex;gap:0.4rem">
+        <button class="btn-icon" onclick="openPessoaModal('${p.id}','${p.nome.replace(/'/g,"\\'")}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="btn-icon danger" onclick="deletePessoa('${p.id}','${p.nome.replace(/'/g,"\\'")}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.openPessoaModal = function(id='', nome='') {
+  document.getElementById('pessoa-id').value = id;
+  document.getElementById('pessoa-nome').value = nome;
+  document.getElementById('pessoaModalTitle').textContent = id ? 'Editar Pessoa' : 'Nova Pessoa';
+  document.getElementById('pessoaModal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('pessoa-nome').focus(), 50);
+};
+
+window.savePessoa = async function() {
+  const { collection, doc, addDoc, updateDoc } = window._fb;
+  const id = document.getElementById('pessoa-id').value;
+  const nome = document.getElementById('pessoa-nome').value.trim();
+  if (!nome) { showToast('Informe o nome', 'error'); return; }
+  try {
+    if (id) {
+      await updateDoc(doc(db, 'pessoas', id), { nome });
+      showToast('Pessoa atualizada!', 'success');
+    } else {
+      await addDoc(collection(db, 'pessoas'), { nome });
+      showToast('Pessoa criada!', 'success');
+    }
+    closeModal('pessoaModal');
+  } catch(e) { showToast('Erro: '+e.message, 'error'); }
+};
+
+window.deletePessoa = async function(id, nome) {
+  if (!confirm(`Excluir "${nome}"?`)) return;
+  const { doc, deleteDoc } = window._fb;
+  await deleteDoc(doc(db, 'pessoas', id));
+  showToast('Pessoa removida');
+};
+
+// BLOCOS
+function subscribeBlocos() {
+  if (currentUnsubBlocos) currentUnsubBlocos();
+  const { collection, onSnapshot, query, where } = window._fb;
+  const q = query(collection(db, 'blocos'), where('mes', '==', currentMonth));
+  currentUnsubBlocos = onSnapshot(q, snap => {
+    blocos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    blocos.sort((a, b) => (a.dataInicio || '').localeCompare(b.dataInicio || ''));
+    renderBlocos();
+    renderResumo();
+  });
+}
+
+function renderBlocos() {
+  const el = document.getElementById('blocos-list');
+  if (!blocos.length) {
+    el.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><h3>Nenhum bloco neste mês</h3><p>Clique em "Novo Bloco" para criar</p></div>`;
+    return;
+  }
+  el.innerHTML = blocos.map(b => renderBlocoCard(b)).join('');
+}
+
+function renderBlocoCard(b) {
+  const contas = b.contas || [];
+  const envolvidos = b.envolvidos || [];
+  const totalContas = contas.reduce((s,c) => s + parseFloat(c.valor||0), 0);
+  const isOpen = expandedBlocos.has(b.id);
+
+  let dateStr = '';
+  if (b.dataInicio && b.dataFim && b.dataInicio !== b.dataFim) {
+    dateStr = `${fmtDate(b.dataInicio)} a ${fmtDate(b.dataFim)}`;
+  } else if (b.dataInicio) {
+    dateStr = fmtDate(b.dataInicio);
+  }
+
+  const contasHtml = contas.length ? contas.map(c => `
+    <div class="conta-item">
+      <div>
+        <div class="conta-desc">${c.desc}</div>
+        ${c.data ? `<div class="conta-data">${fmtDate(c.data)}</div>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;gap:0.75rem">
+        <span class="conta-valor">${fmtMoney(c.valor)}</span>
+        <button class="btn-icon" onclick="openContaModal('${b.id}','${c.id}')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="btn-icon danger" onclick="deleteConta('${b.id}','${c.id}')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button>
+      </div>
+    </div>
+  `).join('') : '<p style="font-size:.85rem;color:var(--text3);padding:0.5rem 0">Nenhuma conta ainda</p>';
+
+  const envolvidosHtml = envolvidos.length ? envolvidos.map(e => {
+    const p = pessoas.find(x => x.id === e.pessoaId);
+    const nome = p ? p.nome : e.pessoaId;
+    const val = totalContas * (parseFloat(e.pct)||0) / 100;
+    return `
+      <div class="envolvido-item">
+        <div class="avatar">${initials(nome)}</div>
+        <div class="envolvido-info">
+          <div class="envolvido-name">${nome}</div>
+          <div class="envolvido-pct">${e.pct}%</div>
+        </div>
+        <div class="envolvido-valor">${fmtMoney(val)}</div>
+      </div>
+    `;
+  }).join('') : '<p style="font-size:.85rem;color:var(--text3);padding:0.5rem 0">Nenhum envolvido definido</p>';
+
+  return `
+    <div class="bloco" id="bloco-${b.id}">
+      <div class="bloco-header" onclick="toggleBloco('${b.id}')">
+        <div style="flex:1;min-width:0">
+          <div class="bloco-title">${b.nome}</div>
+          <div class="bloco-meta">
+            ${dateStr ? `<span class="badge badge-gray">${dateStr}</span>` : ''}
+            <span class="badge badge-green">${fmtMoney(totalContas)}</span>
+            <span class="badge badge-amber">${contas.length} conta${contas.length!==1?'s':''}</span>
+          </div>
+        </div>
+        <div class="card-actions" onclick="event.stopPropagation()">
+          <button class="btn-icon" onclick="openBlocoModal('${b.id}')" title="Editar bloco">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="btn-icon danger" onclick="deleteBloco('${b.id}','${b.nome.replace(/'/g,"\\'")}')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </button>
+        </div>
+      </div>
+      ${isOpen ? `
+      <div class="bloco-body">
+        <div class="bloco-section">
+          <div class="section-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            Contas
+          </div>
+          ${contasHtml}
+          <button class="btn btn-secondary btn-sm" style="margin-top:.75rem" onclick="openContaModal('${b.id}')">+ Adicionar Conta</button>
+        </div>
+        <div class="bloco-section">
+          <div class="section-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Envolvidos
+          </div>
+          ${envolvidosHtml}
+          <button class="btn btn-secondary btn-sm" style="margin-top:.75rem" onclick="openEnvolvidosModal('${b.id}')">Gerenciar Envolvidos</button>
+        </div>
+      </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+window.toggleBloco = function(id) {
+  if (expandedBlocos.has(id)) expandedBlocos.delete(id);
+  else expandedBlocos.add(id);
+  renderBlocos();
+};
+
+window.openBlocoModal = function(id='') {
+  editingBlocoId = id || null;
+  const b = id ? blocos.find(x => x.id === id) : null;
+  document.getElementById('bloco-id').value = id;
+  document.getElementById('bloco-nome').value = b ? b.nome : '';
+  document.getElementById('bloco-data-inicio').value = b ? (b.dataInicio||'') : '';
+  document.getElementById('bloco-data-fim').value = b ? (b.dataFim||'') : '';
+  document.getElementById('bloco-desc').value = b ? (b.desc||'') : '';
+  document.getElementById('blocoModalTitle').textContent = id ? 'Editar Bloco' : 'Novo Bloco';
+  document.getElementById('blocoModal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('bloco-nome').focus(), 50);
+};
+
+window.saveBloco = async function() {
+  const { collection, doc, addDoc, updateDoc } = window._fb;
+  const id = document.getElementById('bloco-id').value;
+  const nome = document.getElementById('bloco-nome').value.trim();
+  if (!nome) { showToast('Informe o nome', 'error'); return; }
+  const data = {
+    nome,
+    mes: currentMonth,
+    dataInicio: document.getElementById('bloco-data-inicio').value,
+    dataFim: document.getElementById('bloco-data-fim').value,
+    desc: document.getElementById('bloco-desc').value.trim(),
+  };
+  try {
+    if (id) {
+      await updateDoc(doc(db, 'blocos', id), data);
+      showToast('Bloco atualizado!', 'success');
+    } else {
+      const ref = await addDoc(collection(db, 'blocos'), { ...data, contas: [], envolvidos: [] });
+      expandedBlocos.add(ref.id);
+      showToast('Bloco criado!', 'success');
+    }
+    closeModal('blocoModal');
+  } catch(e) { showToast('Erro: '+e.message, 'error'); }
+};
+
+window.deleteBloco = async function(id, nome) {
+  if (!confirm(`Excluir o bloco "${nome}" e todas as contas?`)) return;
+  const { doc, deleteDoc } = window._fb;
+  await deleteDoc(doc(db, 'blocos', id));
+  expandedBlocos.delete(id);
+  showToast('Bloco excluído');
+};
+
+// CONTAS
+window.openContaModal = function(blocoId, contaId='') {
+  const b = blocos.find(x => x.id === blocoId);
+  const c = contaId ? (b?.contas||[]).find(x => x.id === contaId) : null;
+  document.getElementById('conta-bloco-id').value = blocoId;
+  document.getElementById('conta-id').value = contaId;
+  document.getElementById('conta-desc').value = c ? c.desc : '';
+  document.getElementById('conta-valor').value = c ? c.valor : '';
+  document.getElementById('conta-data').value = c ? (c.data||'') : '';
+  document.getElementById('contaModalTitle').textContent = contaId ? 'Editar Conta' : 'Nova Conta';
+  document.getElementById('contaModal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('conta-desc').focus(), 50);
+};
+
+window.saveConta = async function() {
+  const { doc, updateDoc } = window._fb;
+  const blocoId = document.getElementById('conta-bloco-id').value;
+  const contaId = document.getElementById('conta-id').value;
+  const desc = document.getElementById('conta-desc').value.trim();
+  const valor = parseFloat(document.getElementById('conta-valor').value);
+  if (!desc || isNaN(valor)) { showToast('Preencha descrição e valor', 'error'); return; }
+  const b = blocos.find(x => x.id === blocoId);
+  let contas = [...(b?.contas||[])];
+  const newConta = { id: contaId || Date.now().toString(), desc, valor, data: document.getElementById('conta-data').value };
+  if (contaId) {
+    contas = contas.map(c => c.id === contaId ? newConta : c);
+  } else {
+    contas.push(newConta);
+  }
+  await updateDoc(doc(db, 'blocos', blocoId), { contas });
+  showToast(contaId ? 'Conta atualizada!' : 'Conta adicionada!', 'success');
+  closeModal('contaModal');
+};
+
+window.deleteConta = async function(blocoId, contaId) {
+  if (!confirm('Excluir esta conta?')) return;
+  const { doc, updateDoc } = window._fb;
+  const b = blocos.find(x => x.id === blocoId);
+  const contas = (b?.contas||[]).filter(c => c.id !== contaId);
+  await updateDoc(doc(db, 'blocos', blocoId), { contas });
+  showToast('Conta removida');
+};
+
+// ENVOLVIDOS
+window.openEnvolvidosModal = function(blocoId) {
+  editingEnvBlocoId = blocoId;
+  document.getElementById('env-bloco-id').value = blocoId;
+  const b = blocos.find(x => x.id === blocoId);
+  const envs = b?.envolvidos || [];
+  const picker = document.getElementById('envolvidos-picker');
+  if (!pessoas.length) {
+    picker.innerHTML = '<p style="padding:1rem;font-size:.875rem;color:var(--text3)">Nenhuma pessoa cadastrada. Vá em "Pessoas" e adicione primeiro.</p>';
+    document.getElementById('envolvidosModal').classList.remove('hidden');
+    return;
+  }
+  picker.innerHTML = pessoas.map(p => {
+    const e = envs.find(x => x.pessoaId === p.id);
+    return `
+      <div class="envolvido-pick">
+        <input type="checkbox" id="pick-${p.id}" ${e ? 'checked' : ''} onchange="updatePctTotal()">
+        <label class="envolvido-pick-name" for="pick-${p.id}">${p.nome}</label>
+        <input type="number" min="0" max="100" step="1" id="pct-${p.id}" value="${e ? e.pct : 0}" oninput="updatePctTotal()"> %
+      </div>
+    `;
+  }).join('');
+  updatePctTotal();
+  document.getElementById('envolvidosModal').classList.remove('hidden');
+};
+
+window.updatePctTotal = function() {
+  let total = 0;
+  pessoas.forEach(p => {
+    const chk = document.getElementById(`pick-${p.id}`);
+    if (chk && chk.checked) {
+      total += parseFloat(document.getElementById(`pct-${p.id}`)?.value||0);
+    }
+  });
+  const el = document.getElementById('pct-total-bar');
+  const val = document.getElementById('pct-total-val');
+  val.textContent = total.toFixed(1) + '%';
+  el.className = 'pct-total ' + (Math.abs(total-100) < 0.01 ? 'ok' : 'bad');
+};
+
+window.saveEnvolvidos = async function() {
+  const { doc, updateDoc } = window._fb;
+  const blocoId = document.getElementById('env-bloco-id').value;
+  let total = 0;
+  const envolvidos = [];
+  pessoas.forEach(p => {
+    const chk = document.getElementById(`pick-${p.id}`);
+    if (chk && chk.checked) {
+      const pct = parseFloat(document.getElementById(`pct-${p.id}`)?.value||0);
+      total += pct;
+      envolvidos.push({ pessoaId: p.id, pct });
+    }
+  });
+  if (envolvidos.length && Math.abs(total - 100) > 0.1) {
+    showToast('A soma das porcentagens deve ser 100%', 'error'); return;
+  }
+  await updateDoc(doc(db, 'blocos', blocoId), { envolvidos });
+  showToast('Envolvidos salvos!', 'success');
+  closeModal('envolvidosModal');
+};
+
+// RESUMO
+function renderResumo() {
+  const totalGeral = blocos.reduce((s,b) => s + (b.contas||[]).reduce((ss,c) => ss+parseFloat(c.valor||0),0), 0);
+  const cards = document.getElementById('resumo-cards');
+  cards.innerHTML = `
+    <div class="summary-card"><div class="summary-label">Total do mês</div><div class="summary-value green">${fmtMoney(totalGeral)}</div></div>
+    <div class="summary-card"><div class="summary-label">Blocos</div><div class="summary-value">${blocos.length}</div></div>
+    <div class="summary-card"><div class="summary-label">Contas</div><div class="summary-value">${blocos.reduce((s,b)=>s+(b.contas||[]).length,0)}</div></div>
+  `;
+
+  // por pessoa
+  const porPessoa = {};
+  blocos.forEach(b => {
+    const totalBloco = (b.contas||[]).reduce((s,c) => s+parseFloat(c.valor||0),0);
+    (b.envolvidos||[]).forEach(e => {
+      if (!porPessoa[e.pessoaId]) porPessoa[e.pessoaId] = 0;
+      porPessoa[e.pessoaId] += totalBloco * (parseFloat(e.pct)||0) / 100;
+    });
+  });
+
+  const rp = document.getElementById('resumo-pessoas');
+  if (!Object.keys(porPessoa).length) {
+    rp.innerHTML = '<p style="font-size:.875rem;color:var(--text3)">Nenhum envolvido definido nos blocos deste mês.</p>';
+    return;
+  }
+  rp.innerHTML = `
+    <div class="card">
+      <div class="section-title" style="margin-bottom:1rem">Divisão por pessoa</div>
+      ${Object.entries(porPessoa).map(([pid, val]) => {
+        const p = pessoas.find(x => x.id === pid);
+        const nome = p ? p.nome : pid;
+        const pct = totalGeral > 0 ? (val/totalGeral*100).toFixed(1) : 0;
+        return `
+          <div style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 0;border-bottom:1px solid var(--border)">
+            <div class="avatar">${initials(nome)}</div>
+            <div style="flex:1">
+              <div style="font-weight:500;font-size:.9rem">${nome}</div>
+              <div style="font-size:.75rem;color:var(--text3)">${pct}% do total</div>
+            </div>
+            <div style="font-family:'DM Mono',monospace;font-weight:600;color:var(--accent)">${fmtMoney(val)}</div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+// MODAL
+window.closeModal = function(id) {
+  document.getElementById(id).classList.add('hidden');
+};
+
+// KEYBOARD
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    ['blocoModal','contaModal','envolvidosModal','pessoaModal'].forEach(m => {
+      if (!document.getElementById(m).classList.contains('hidden')) closeModal(m);
+    });
+  }
+});
+
+// INIT
+function initApp(cfg) {
+  const app = window._fb.initializeApp(cfg);
+  db = window._fb.getFirestore(app);
+  currentMonth = new Date().toISOString().substring(0,7);
+  populateMonthSelect();
+  updateBlocosHeader();
+  subscribePessoas();
+  subscribeBlocos();
+
+  // Fill config page
+  document.getElementById('edit-apiKey').value = cfg.apiKey || '';
+  document.getElementById('edit-authDomain').value = cfg.authDomain || '';
+  document.getElementById('edit-projectId').value = cfg.projectId || '';
+
+  document.getElementById('configScreen').classList.add('hidden');
+  document.getElementById('appRoot').classList.remove('hidden');
+}
+
+// Load config
+const savedCfg = localStorage.getItem('fb_config');
+if (savedCfg) {
+  try {
+    initApp(JSON.parse(savedCfg));
+  } catch(e) {
+    document.getElementById('configScreen').classList.remove('hidden');
+  }
+} else {
+  document.getElementById('configScreen').classList.remove('hidden');
+}
+</script>
+</body>
+</html>
