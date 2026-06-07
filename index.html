@@ -183,39 +183,8 @@
 </head>
 <body>
 
-<!-- Firebase Config Screen -->
-<div id="configScreen" class="config-screen hidden">
-  <div class="card">
-    <h2>🔥 Configurar Firebase</h2>
-    <p>Para usar o app, você precisa de um projeto Firebase gratuito. Siga os passos:</p>
-    <div class="config-step">
-      <strong>Como obter as credenciais:</strong>
-      <ol>
-        <li>Acesse <strong>console.firebase.google.com</strong></li>
-        <li>Crie um projeto (ou use um existente)</li>
-        <li>Vá em <strong>Configurações → Aplicativos web</strong> e registre um app</li>
-        <li>Copie a <code>firebaseConfig</code></li>
-        <li>No menu lateral, ative <strong>Firestore Database</strong> (modo teste)</li>
-      </ol>
-    </div>
-    <div class="form-group">
-      <label class="form-label">API Key</label>
-      <input class="form-control" id="cfg-apiKey" placeholder="AIzaSy...">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Auth Domain</label>
-      <input class="form-control" id="cfg-authDomain" placeholder="meu-projeto.firebaseapp.com">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Project ID</label>
-      <input class="form-control" id="cfg-projectId" placeholder="meu-projeto-12345">
-    </div>
-    <button class="btn btn-primary" style="width:100%" onclick="saveConfig()">Salvar e Conectar</button>
-  </div>
-</div>
-
 <!-- App -->
-<div id="appRoot" class="hidden">
+<div id="appRoot">
   <button class="menu-toggle" onclick="toggleSidebar()">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
   </button>
@@ -230,7 +199,7 @@
         <div class="nav-section">Menu</div>
         <button class="nav-item active" id="nav-blocos" onclick="showPage('blocos')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          Blocos de Eventos
+          Eventos
         </button>
         <button class="nav-item" id="nav-pessoas" onclick="showPage('pessoas')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -240,10 +209,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           Resumo Mensal
         </button>
-        <button class="nav-item" id="nav-config" onclick="showPage('config')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Firebase
-        </button>
+
       </nav>
       <div class="month-selector">
         <label class="form-label">Mês de referência</label>
@@ -256,12 +222,12 @@
       <div id="page-blocos">
         <div class="page-header">
           <div>
-            <div class="page-title" id="blocos-title">Blocos de Eventos</div>
+            <div class="page-title" id="blocos-title">Eventos</div>
             <div class="page-subtitle" id="blocos-subtitle">Mês atual</div>
           </div>
           <button class="btn btn-primary" onclick="openBlocoModal()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Novo Bloco
+            Novo Evento
           </button>
         </div>
         <div id="blocos-list"><div class="empty-state"><p>Carregando...</p></div></div>
@@ -288,28 +254,7 @@
         <div id="resumo-pessoas"></div>
       </div>
 
-      <!-- CONFIG PAGE -->
-      <div id="page-config" class="hidden">
-        <div class="page-header">
-          <div><div class="page-title">Configurações Firebase</div><div class="page-subtitle">Altere as credenciais</div></div>
-        </div>
-        <div class="card">
-          <div class="form-group">
-            <label class="form-label">API Key</label>
-            <input class="form-control" id="edit-apiKey" placeholder="AIzaSy...">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Auth Domain</label>
-            <input class="form-control" id="edit-authDomain" placeholder="meu-projeto.firebaseapp.com">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Project ID</label>
-            <input class="form-control" id="edit-projectId" placeholder="meu-projeto-12345">
-          </div>
-          <button class="btn btn-primary" onclick="updateConfig()">Salvar Configurações</button>
-          <button class="btn btn-danger" style="margin-left:0.5rem" onclick="clearConfig()">Limpar e Reconectar</button>
-        </div>
-      </div>
+
     </main>
   </div>
 </div>
@@ -496,39 +441,10 @@ function monthLabel(m) {
   return l.charAt(0).toUpperCase() + l.slice(1);
 }
 
-// CONFIG
-window.saveConfig = function() {
-  const cfg = {
-    apiKey: document.getElementById('cfg-apiKey').value.trim(),
-    authDomain: document.getElementById('cfg-authDomain').value.trim(),
-    projectId: document.getElementById('cfg-projectId').value.trim(),
-  };
-  if (!cfg.apiKey || !cfg.projectId) { showToast('Preencha todos os campos', 'error'); return; }
-  localStorage.setItem('fb_config', JSON.stringify(cfg));
-  location.reload();
-};
-
-window.updateConfig = function() {
-  const cfg = {
-    apiKey: document.getElementById('edit-apiKey').value.trim(),
-    authDomain: document.getElementById('edit-authDomain').value.trim(),
-    projectId: document.getElementById('edit-projectId').value.trim(),
-  };
-  if (!cfg.apiKey || !cfg.projectId) { showToast('Preencha todos os campos', 'error'); return; }
-  localStorage.setItem('fb_config', JSON.stringify(cfg));
-  showToast('Configurações salvas! Recarregando...', 'success');
-  setTimeout(() => location.reload(), 1000);
-};
-
-window.clearConfig = function() {
-  if (!confirm('Limpar configurações do Firebase?')) return;
-  localStorage.removeItem('fb_config');
-  location.reload();
-};
 
 // NAVIGATION
 window.showPage = function(page) {
-  ['blocos','pessoas','resumo','config'].forEach(p => {
+  ['blocos','pessoas','resumo'].forEach(p => {
     document.getElementById(`page-${p}`).classList.add('hidden');
     document.getElementById(`nav-${p}`).classList.remove('active');
   });
@@ -550,7 +466,7 @@ window.changeMonth = function() {
 };
 
 function updateBlocosHeader() {
-  document.getElementById('blocos-title').textContent = 'Blocos de Eventos';
+  document.getElementById('blocos-title').textContent = 'Eventos';
   document.getElementById('blocos-subtitle').textContent = monthLabel(currentMonth);
   document.getElementById('resumo-subtitle').textContent = monthLabel(currentMonth);
 }
@@ -962,27 +878,14 @@ function initApp(cfg) {
   updateBlocosHeader();
   subscribePessoas();
   subscribeBlocos();
-
-  // Fill config page
-  document.getElementById('edit-apiKey').value = cfg.apiKey || '';
-  document.getElementById('edit-authDomain').value = cfg.authDomain || '';
-  document.getElementById('edit-projectId').value = cfg.projectId || '';
-
-  document.getElementById('configScreen').classList.add('hidden');
-  document.getElementById('appRoot').classList.remove('hidden');
 }
 
-// Load config
-const savedCfg = localStorage.getItem('fb_config');
-if (savedCfg) {
-  try {
-    initApp(JSON.parse(savedCfg));
-  } catch(e) {
-    document.getElementById('configScreen').classList.remove('hidden');
-  }
-} else {
-  document.getElementById('configScreen').classList.remove('hidden');
-}
+// Credenciais Firebase embutidas
+initApp({
+  apiKey: "AIzaSyCRRDhtyjvuk669iZS6Mtras8JANzQoLII",
+  authDomain: "divisoesdecontas.firebaseapp.com",
+  projectId: "divisoesdecontas",
+});
 </script>
 </body>
 </html>
