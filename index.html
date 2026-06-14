@@ -209,6 +209,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           Resumo Mensal
         </button>
+        <button class="nav-item" id="nav-periodo" onclick="showPage('periodo')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Resumo por Período
+        </button>
 
       </nav>
       <div class="month-selector">
@@ -252,6 +256,27 @@
         </div>
         <div class="summary-grid" id="resumo-cards"></div>
         <div id="resumo-pessoas"></div>
+      </div>
+
+      <!-- PERIODO PAGE -->
+      <div id="page-periodo" class="hidden">
+        <div class="page-header">
+          <div><div class="page-title">Resumo por Período</div><div class="page-subtitle">Selecione o intervalo de datas</div></div>
+        </div>
+        <div class="card" style="margin-bottom:1.5rem">
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">Data inicial</label>
+              <input class="form-control" type="date" id="periodo-inicio">
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">Data final</label>
+              <input class="form-control" type="date" id="periodo-fim">
+            </div>
+          </div>
+          <button class="btn btn-primary" style="margin-top:1rem;width:100%" onclick="gerarResumoPeriodo()">Gerar Resumo</button>
+        </div>
+        <div id="periodo-resultado"></div>
       </div>
 
 
@@ -406,6 +431,7 @@ let editingBlocoId = null;
 let editingContaId = null;
 let editingEnvBlocoId = null;
 let expandedBlocos = new Set();
+let expandedEnvs = new Set();
 
 // UTILS
 window.showToast = function(msg, type='') {
@@ -451,7 +477,7 @@ function monthLabel(m) {
 
 // NAVIGATION
 window.showPage = function(page) {
-  ['blocos','pessoas','resumo'].forEach(p => {
+  ['blocos','pessoas','resumo','periodo'].forEach(p => {
     document.getElementById(`page-${p}`).classList.add('hidden');
     document.getElementById(`nav-${p}`).classList.remove('active');
   });
@@ -583,6 +609,9 @@ function renderBlocoCard(b) {
   const contasHtml = contas.length ? contas.map(c => {
     const envs = c.envolvidos || [];
     const pagador = c.pagadorId ? pessoas.find(x => x.id === c.pagadorId) : null;
+    const envKey = `${b.id}-${c.id}`;
+    const envOpen = expandedEnvs.has(envKey);
+
     const envsHtml = envs.length ? envs.map(e => {
       const p = pessoas.find(x => x.id === e.pessoaId);
       const nome = p ? p.nome : e.pessoaId;
@@ -596,7 +625,7 @@ function renderBlocoCard(b) {
           </div>
           <div class="envolvido-valor" style="font-size:0.8rem">${fmtMoney(val)}</div>
         </div>`;
-    }).join('') : '<p style="font-size:.78rem;color:var(--text3);padding:0.25rem 0">Sem envolvidos</p>';
+    }).join('') : '<p style="font-size:.78rem;color:var(--text3);padding:0.25rem 0">Sem envolvidos definidos</p>';
 
     return `
     <div style="border-bottom:1px solid var(--border);padding:0.75rem 0">
@@ -608,9 +637,9 @@ function renderBlocoCard(b) {
             ${pagador ? `<div class="conta-data" style="color:var(--accent)">💳 ${pagador.nome}</div>` : ''}
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:0.75rem">
+        <div style="display:flex;align-items:center;gap:0.5rem">
           <span class="conta-valor">${fmtMoney(c.valor)}</span>
-          <button class="btn-icon" onclick="openEnvolvidosContaModal('${b.id}','${c.id}')" title="Gerenciar envolvidos">
+          <button class="btn-icon" onclick="toggleEnvs('${envKey}')" title="Envolvidos" style="${envOpen ? 'background:var(--accent-light);color:var(--accent);border-color:var(--accent-light)' : ''}">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </button>
           <button class="btn-icon" onclick="openContaModal('${b.id}','${c.id}')">
@@ -621,9 +650,14 @@ function renderBlocoCard(b) {
           </button>
         </div>
       </div>
-      <div style="margin-top:0.4rem;padding-left:0.5rem;border-left:2px solid var(--border)">
+      ${envOpen ? `
+      <div style="margin-top:0.6rem;padding:0.75rem;background:var(--surface2);border-radius:var(--radius-sm)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem">
+          <span style="font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3)">Envolvidos</span>
+          <button class="btn btn-secondary btn-sm" onclick="openEnvolvidosContaModal('${b.id}','${c.id}')">Gerenciar</button>
+        </div>
         ${envsHtml}
-      </div>
+      </div>` : ''}
     </div>`;
   }).join('') : '<p style="font-size:.85rem;color:var(--text3);padding:0.5rem 0">Nenhuma conta ainda</p>';
 
@@ -657,6 +691,41 @@ function renderBlocoCard(b) {
           ${contasHtml}
           <button class="btn btn-secondary btn-sm" style="margin-top:.75rem" onclick="openContaModal('${b.id}')">+ Adicionar Conta</button>
         </div>
+        ${(() => {
+          const sub = {};
+          contas.forEach(c => {
+            const val = parseFloat(c.valor||0);
+            (c.envolvidos||[]).forEach(e => {
+              if (!sub[e.pessoaId]) sub[e.pessoaId] = 0;
+              sub[e.pessoaId] += val * (parseFloat(e.pct)||0) / 100;
+            });
+          });
+          if (!Object.keys(sub).length) return '';
+          const subKey = `sub-${b.id}`;
+          const subOpen = expandedEnvs.has(subKey);
+          return `
+          <div class="bloco-section" style="background:var(--surface2);cursor:pointer" onclick="toggleEnvs('${subKey}')">
+            <div class="section-title" style="margin-bottom:${subOpen?'0.5rem':'0'};justify-content:space-between">
+              <div style="display:flex;align-items:center;gap:0.5rem">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                Subtotal por participante
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition:transform 0.2s;transform:rotate(${subOpen?'180':'0'}deg)"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            ${subOpen ? Object.entries(sub).map(([pid, val]) => {
+              const p = pessoas.find(x => x.id === pid);
+              const nome = p ? p.nome : pid;
+              const pct = totalContas > 0 ? (val/totalContas*100).toFixed(0) : 0;
+              return `
+              <div style="display:flex;align-items:center;gap:0.75rem;padding:0.45rem 0;border-bottom:1px solid var(--border)">
+                <div class="avatar" style="width:28px;height:28px;font-size:0.7rem">${initials(nome)}</div>
+                <div style="flex:1;font-size:0.875rem;font-weight:500">${nome}</div>
+                <div style="font-size:0.75rem;color:var(--text3);margin-right:0.5rem">${pct}%</div>
+                <div style="font-family:'DM Mono',monospace;font-size:0.875rem;font-weight:600;color:var(--danger)">${fmtMoney(val)}</div>
+              </div>`;
+            }).join('') : ''}
+          </div>`;
+        })()}
       </div>
       ` : ''}
     </div>
@@ -666,6 +735,12 @@ function renderBlocoCard(b) {
 window.toggleBloco = function(id) {
   if (expandedBlocos.has(id)) expandedBlocos.delete(id);
   else expandedBlocos.add(id);
+  renderBlocos();
+};
+
+window.toggleEnvs = function(key) {
+  if (expandedEnvs.has(key)) expandedEnvs.delete(key);
+  else expandedEnvs.add(key);
   renderBlocos();
 };
 
@@ -958,6 +1033,119 @@ document.addEventListener('keydown', e => {
     });
   }
 });
+
+// RESUMO POR PERÍODO
+window.gerarResumoPeriodo = async function() {
+  const inicio = document.getElementById('periodo-inicio').value;
+  const fim = document.getElementById('periodo-fim').value;
+  const resultado = document.getElementById('periodo-resultado');
+  if (!inicio || !fim) { showToast('Selecione as duas datas', 'error'); return; }
+  if (inicio > fim) { showToast('Data inicial deve ser antes da final', 'error'); return; }
+
+  resultado.innerHTML = '<p style="color:var(--text3);font-size:.875rem">Carregando...</p>';
+
+  const { collection, query, where, getDocs } = window._fb;
+  // busca todos os blocos cujo mês esteja no intervalo
+  const mesInicio = inicio.substring(0,7);
+  const mesFim = fim.substring(0,7);
+  const meses = [];
+  let cur = mesInicio;
+  while (cur <= mesFim) {
+    meses.push(cur);
+    const [y, m] = cur.split('-').map(Number);
+    const next = m === 12 ? `${y+1}-01` : `${y}-${String(m+1).padStart(2,'0')}`;
+    cur = next;
+  }
+
+  // busca blocos de todos os meses do intervalo
+  let todosBlocos = [];
+  for (const mes of meses) {
+    const q = query(collection(db, 'blocos'), where('mes', '==', mes));
+    const snap = await getDocs(q);
+    snap.docs.forEach(d => todosBlocos.push({ id: d.id, ...d.data() }));
+  }
+
+  // filtra contas cujas datas estão no intervalo
+  const blocosNoIntervalo = todosBlocos.map(b => {
+    const contasFiltradas = (b.contas||[]).filter(c => {
+      if (!c.data) return true; // sem data inclui
+      return c.data >= inicio && c.data <= fim;
+    });
+    return { ...b, contas: contasFiltradas };
+  }).filter(b => b.contas.length > 0);
+
+  const totalGeral = blocosNoIntervalo.reduce((s,b) => s + b.contas.reduce((ss,c) => ss+parseFloat(c.valor||0),0), 0);
+  const totalContas = blocosNoIntervalo.reduce((s,b) => s + b.contas.length, 0);
+
+  const deveMap = {}, pagouMap = {};
+  blocosNoIntervalo.forEach(b => {
+    b.contas.forEach(c => {
+      const val = parseFloat(c.valor||0);
+      (c.envolvidos||[]).forEach(e => {
+        if (!deveMap[e.pessoaId]) deveMap[e.pessoaId] = 0;
+        deveMap[e.pessoaId] += val * (parseFloat(e.pct)||0) / 100;
+      });
+      if (c.pagadorId) {
+        if (!pagouMap[c.pagadorId]) pagouMap[c.pagadorId] = 0;
+        pagouMap[c.pagadorId] += val;
+      }
+    });
+  });
+
+  const todasPessoas = [...new Set([...Object.keys(deveMap), ...Object.keys(pagouMap)])];
+
+  const fmtD = d => new Date(d+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+
+  const divisaoHtml = todasPessoas.length ? todasPessoas.map(pid => {
+    const p = pessoas.find(x => x.id === pid);
+    const nome = p ? p.nome : pid;
+    const deve = deveMap[pid] || 0;
+    return `<div style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 0;border-bottom:1px solid var(--border)">
+      <div class="avatar">${initials(nome)}</div>
+      <div style="flex:1"><div style="font-weight:500;font-size:.9rem">${nome}</div></div>
+      <div style="font-family:'DM Mono',monospace;font-weight:600;font-size:.95rem;color:var(--danger)">${fmtMoney(deve)}</div>
+    </div>`;
+  }).join('') : '<p style="font-size:.85rem;color:var(--text3)">Nenhum envolvido no período.</p>';
+
+  const compradores = Object.keys(pagouMap).filter(pid => (pagouMap[pid]||0) > 0);
+  const recebedoresHtml = compradores.length ? compradores.map(pid => {
+    const p = pessoas.find(x => x.id === pid);
+    const nome = p ? p.nome : pid;
+    const pagou = pagouMap[pid] || 0;
+    const devePagar = deveMap[pid] || 0;
+    const aReceber = pagou - devePagar;
+    const cor = aReceber >= 0 ? 'var(--accent)' : 'var(--danger)';
+    const label = aReceber >= 0 ? 'a receber' : 'a pagar';
+    return `<div style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 0;border-bottom:1px solid var(--border)">
+      <div class="avatar" style="background:var(--accent-light);color:var(--accent)">${initials(nome)}</div>
+      <div style="flex:1">
+        <div style="font-weight:500;font-size:.9rem">${nome}</div>
+        <div style="font-size:.75rem;color:var(--text3)">Pagou ${fmtMoney(pagou)} · sua parte ${fmtMoney(devePagar)}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:'DM Mono',monospace;font-weight:600;font-size:.95rem;color:${cor}">${fmtMoney(Math.abs(aReceber))}</div>
+        <div style="font-size:.72rem;color:${cor}">${label}</div>
+      </div>
+    </div>`;
+  }).join('') : '<p style="font-size:.85rem;color:var(--text3)">Nenhum pagador no período.</p>';
+
+  resultado.innerHTML = `
+    <div class="summary-grid" style="margin-bottom:1.5rem">
+      <div class="summary-card"><div class="summary-label">Total do período</div><div class="summary-value green">${fmtMoney(totalGeral)}</div></div>
+      <div class="summary-card"><div class="summary-label">Eventos</div><div class="summary-value">${blocosNoIntervalo.length}</div></div>
+      <div class="summary-card"><div class="summary-label">Contas</div><div class="summary-value">${totalContas}</div></div>
+    </div>
+    <p style="font-size:.8rem;color:var(--text3);margin-bottom:1rem">${fmtD(inicio)} até ${fmtD(fim)}</p>
+    <div class="card" style="margin-bottom:1rem">
+      <div class="section-title" style="margin-bottom:0.5rem">Quanto cada um deve</div>
+      ${divisaoHtml}
+    </div>
+    <div class="card">
+      <div class="section-title" style="margin-bottom:0.5rem">Compradores a receber</div>
+      ${recebedoresHtml}
+    </div>
+  `;
+};
 
 // INIT
 function initApp(cfg) {
