@@ -402,6 +402,14 @@
         <label class="form-label">Nome *</label>
         <input class="form-control" id="pessoa-nome" placeholder="Nome completo">
       </div>
+      <div class="form-group">
+        <label class="form-label">Tipo de participação</label>
+        <select class="form-control" id="pessoa-tipo">
+          <option value="2">Família (peso 2)</option>
+          <option value="1">Individual (peso 1)</option>
+        </select>
+        <div class="form-hint">Na divisão igualitária, Família conta como 2 pessoas e Individual como 1.</div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('pessoaModal')">Cancelar</button>
@@ -522,14 +530,20 @@ function renderPessoas() {
     el.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><h3>Nenhuma pessoa cadastrada</h3><p>Clique em "Nova Pessoa" para começar</p></div>`;
     return;
   }
-  el.innerHTML = pessoas.map(p => `
+  el.innerHTML = pessoas.map(p => {
+    const tipo = p.tipo || 2;
+    const tipoBadge = tipo === 1
+      ? `<span class="badge badge-gray">Individual · peso 1</span>`
+      : `<span class="badge badge-green">Família · peso 2</span>`;
+    return `
     <div class="pessoa-card">
       <div class="avatar">${initials(p.nome)}</div>
       <div class="pessoa-info">
         <div class="pessoa-name">${p.nome}</div>
+        <div style="margin-top:0.25rem">${tipoBadge}</div>
       </div>
       <div style="display:flex;gap:0.4rem">
-        <button class="btn-icon" onclick="openPessoaModal('${p.id}','${p.nome.replace(/'/g,"\\'")}')">
+        <button class="btn-icon" onclick="openPessoaModal('${p.id}','${p.nome.replace(/'/g,"\\'")}',${tipo})">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </button>
         <button class="btn-icon danger" onclick="deletePessoa('${p.id}','${p.nome.replace(/'/g,"\\'")}')">
@@ -537,12 +551,13 @@ function renderPessoas() {
         </button>
       </div>
     </div>
-  `).join('');
+  `}).join('');
 }
 
-window.openPessoaModal = function(id='', nome='') {
+window.openPessoaModal = function(id='', nome='', tipo=2) {
   document.getElementById('pessoa-id').value = id;
   document.getElementById('pessoa-nome').value = nome;
+  document.getElementById('pessoa-tipo').value = String(tipo || 2);
   document.getElementById('pessoaModalTitle').textContent = id ? 'Editar Pessoa' : 'Nova Pessoa';
   document.getElementById('pessoaModal').classList.remove('hidden');
   setTimeout(() => document.getElementById('pessoa-nome').focus(), 50);
@@ -552,13 +567,14 @@ window.savePessoa = async function() {
   const { collection, doc, addDoc, updateDoc } = window._fb;
   const id = document.getElementById('pessoa-id').value;
   const nome = document.getElementById('pessoa-nome').value.trim();
+  const tipo = parseInt(document.getElementById('pessoa-tipo').value) || 2;
   if (!nome) { showToast('Informe o nome', 'error'); return; }
   try {
     if (id) {
-      await updateDoc(doc(db, 'pessoas', id), { nome });
+      await updateDoc(doc(db, 'pessoas', id), { nome, tipo });
       showToast('Pessoa atualizada!', 'success');
     } else {
-      await addDoc(collection(db, 'pessoas'), { nome });
+      await addDoc(collection(db, 'pessoas'), { nome, tipo });
       showToast('Pessoa criada!', 'success');
     }
     closeModal('pessoaModal');
@@ -856,11 +872,12 @@ window.openEnvolvidosContaModal = function(blocoId, contaId) {
   document.querySelector('#envolvidosModal .modal-title').textContent = `Envolvidos — ${c?.desc || 'Conta'}`;
   picker.innerHTML = pessoas.map(p => {
     const e = envs.find(x => x.pessoaId === p.id);
+    const tipoBadge = (p.tipo||2) === 1 ? '· Individual' : '· Família';
     return `
       <div class="envolvido-pick">
-        <input type="checkbox" id="pick-${p.id}" ${e ? 'checked' : ''} onchange="updatePctTotal()">
-        <label class="envolvido-pick-name" for="pick-${p.id}">${p.nome}</label>
-        <input type="number" min="0" max="100" step="1" id="pct-${p.id}" value="${e ? e.pct : 0}" oninput="updatePctTotal()"> %
+        <input type="checkbox" id="pick-${p.id}" ${e ? 'checked' : ''} onchange="updatePctTotal(true)">
+        <label class="envolvido-pick-name" for="pick-${p.id}">${p.nome} <span style="color:var(--text3);font-size:0.75rem">${tipoBadge}</span></label>
+        <input type="number" min="0" max="100" step="0.1" id="pct-${p.id}" value="${e ? e.pct : 0}" oninput="updatePctTotal(false)"> %
       </div>
     `;
   }).join('');
@@ -868,20 +885,61 @@ window.openEnvolvidosContaModal = function(blocoId, contaId) {
   document.getElementById('envolvidosModal').classList.remove('hidden');
 };
 
-window.updatePctTotal = function() {
+window.updatePctTotal = function(autoRedistribute = false) {
   let total = 0;
   let marcados = 0;
+  const marcados_ids = [];
   pessoas.forEach(p => {
     const chk = document.getElementById(`pick-${p.id}`);
     if (chk && chk.checked) {
       marcados++;
+      marcados_ids.push(p.id);
       total += parseFloat(document.getElementById(`pct-${p.id}`)?.value||0);
     }
   });
+
+  // se veio de um checkbox, redistribui automaticamente pelos pesos
+  if (autoRedistribute && marcados_ids.length > 0) {
+    const pesoTotal = marcados_ids.reduce((s, pid) => {
+      const p = pessoas.find(x => x.id === pid);
+      return s + (p?.tipo || 2);
+    }, 0);
+    let acumulado = 0;
+    marcados_ids.forEach((pid, i) => {
+      const p = pessoas.find(x => x.id === pid);
+      const peso = p?.tipo || 2;
+      const pct = i === marcados_ids.length - 1
+        ? parseFloat((100 - acumulado).toFixed(2))
+        : parseFloat((peso / pesoTotal * 100).toFixed(2));
+      acumulado += pct;
+      const input = document.getElementById(`pct-${pid}`);
+      if (input) input.value = pct;
+    });
+    // zera os desmarcados
+    pessoas.forEach(p => {
+      if (!marcados_ids.includes(p.id)) {
+        const input = document.getElementById(`pct-${p.id}`);
+        if (input) input.value = 0;
+      }
+    });
+    total = 100;
+  }
+
   const el = document.getElementById('pct-total-bar');
   const val = document.getElementById('pct-total-val');
-  if (total === 0 && marcados > 0) {
-    val.textContent = `Divisão igualitária (${(100/marcados).toFixed(1)}% cada)`;
+  if (marcados_ids.length === 0) {
+    val.textContent = '0%';
+    el.className = 'pct-total bad';
+  } else if (Math.abs(total - 100) < 0.1) {
+    const pesoTotal = marcados_ids.reduce((s, pid) => {
+      const p = pessoas.find(x => x.id === pid);
+      return s + (p?.tipo || 2);
+    }, 0);
+    const info = marcados_ids.map(pid => {
+      const p = pessoas.find(x => x.id === pid);
+      return `${p?.nome||''}: ${((p?.tipo||2)/pesoTotal*100).toFixed(1)}%`;
+    }).join(' · ');
+    val.textContent = `100% — ${info}`;
     el.className = 'pct-total ok';
   } else {
     val.textContent = total.toFixed(1) + '%';
@@ -912,15 +970,26 @@ window.saveEnvolvidos = async function() {
   const total = selecionados.reduce((s, e) => s + e.pct, 0);
   let envolvidos;
   if (total === 0) {
-    // nenhuma % preenchida — divide igualmente
-    const pctIgual = parseFloat((100 / selecionados.length).toFixed(4));
+    // divide proporcionalmente ao peso de cada um
+    const pesoTotal = selecionados.reduce((s, e) => {
+      const p = pessoas.find(x => x.id === e.pessoaId);
+      return s + (p?.tipo || 2);
+    }, 0);
     let acumulado = 0;
     envolvidos = selecionados.map((e, i) => {
-      const pct = i === selecionados.length - 1 ? parseFloat((100 - acumulado).toFixed(4)) : pctIgual;
+      const p = pessoas.find(x => x.id === e.pessoaId);
+      const peso = p?.tipo || 2;
+      const pct = i === selecionados.length - 1
+        ? parseFloat((100 - acumulado).toFixed(4))
+        : parseFloat((peso / pesoTotal * 100).toFixed(4));
       acumulado += pct;
       return { pessoaId: e.pessoaId, pct };
     });
-    showToast(`Divisão igualitária: ${(100/selecionados.length).toFixed(1)}% cada`, 'success');
+    const info = selecionados.map(e => {
+      const p = pessoas.find(x => x.id === e.pessoaId);
+      return `${p?.nome||''} ${((p?.tipo||2)/pesoTotal*100).toFixed(1)}%`;
+    }).join(', ');
+    showToast(`Divisão por peso: ${info}`, 'success');
   } else if (Math.abs(total - 100) > 0.1) {
     showToast('A soma das porcentagens deve ser 100%', 'error'); return;
   } else {
