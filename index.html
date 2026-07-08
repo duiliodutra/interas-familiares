@@ -133,10 +133,15 @@
   .envolvido-pick:last-child { border-bottom: none; }
   .envolvido-pick input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; }
   .envolvido-pick-name { flex: 1; font-size: 0.875rem; }
-  .envolvido-pick input[type=number] { width: 70px; padding: 0.3rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: 'DM Mono', monospace; font-size: 0.85rem; text-align: right; }
+  .envolvido-pick input[type=number] { width: 80px; padding: 0.3rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: 'DM Mono', monospace; font-size: 0.85rem; text-align: right; }
   .pct-total { font-size: 0.8rem; padding: 0.5rem 1rem; background: var(--surface2); color: var(--text2); display: flex; justify-content: space-between; border-top: 1px solid var(--border); }
   .pct-total.ok { color: var(--accent); }
   .pct-total.bad { color: var(--danger); }
+  /* MODE TOGGLE */
+  .mode-toggle { display: flex; gap: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 1rem; width: fit-content; }
+  .mode-toggle button { padding: 0.35rem 0.9rem; font-family: inherit; font-size: 0.8rem; font-weight: 500; border: none; background: var(--surface2); color: var(--text2); cursor: pointer; transition: all 0.15s; }
+  .mode-toggle button.active { background: var(--accent); color: white; }
+  .mode-toggle button:first-child { border-right: 1px solid var(--border); }
 
   /* TOAST */
   .toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem; }
@@ -374,10 +379,15 @@
     <div class="modal-body">
       <input type="hidden" id="env-bloco-id">
       <input type="hidden" id="env-conta-id">
-      <p style="font-size:0.875rem;color:var(--text2);margin-bottom:1rem;">Selecione os participantes e defina a porcentagem de cada um (total deve ser 100%).</p>
+      <input type="hidden" id="env-conta-valor">
+      <p style="font-size:0.875rem;color:var(--text2);margin-bottom:0.75rem;">Selecione os participantes. A divisão automática usa o peso de cada um (Família=2, Individual=1).</p>
+      <div class="mode-toggle">
+        <button id="mode-btn-pct" class="active" onclick="setEnvolvidosMode('pct')">% Porcentagem</button>
+        <button id="mode-btn-val" onclick="setEnvolvidosMode('val')">R$ Valor</button>
+      </div>
       <div id="envolvidos-picker" class="envolvidos-picker"></div>
       <div class="pct-total" id="pct-total-bar">
-        <span>Total das porcentagens</span><span id="pct-total-val">0%</span>
+        <span id="pct-total-label">Total</span><span id="pct-total-val">0%</span>
       </div>
     </div>
     <div class="modal-footer">
@@ -857,11 +867,42 @@ window.deleteConta = async function(blocoId, contaId) {
 };
 
 // ENVOLVIDOS POR CONTA
+let envolvidosMode = 'pct'; // 'pct' | 'val'
+
+window.setEnvolvidosMode = function(mode) {
+  const contaValor = parseFloat(document.getElementById('env-conta-valor').value || 0);
+  // converte valores atuais antes de trocar o modo
+  pessoas.forEach(p => {
+    const input = document.getElementById(`pct-${p.id}`);
+    if (!input) return;
+    const v = parseFloat(input.value || 0);
+    if (envolvidosMode === 'pct' && mode === 'val') {
+      input.value = contaValor > 0 ? parseFloat((v / 100 * contaValor).toFixed(2)) : 0;
+      input.max = contaValor || 999999;
+      input.step = '0.01';
+    } else if (envolvidosMode === 'val' && mode === 'pct') {
+      input.value = contaValor > 0 ? parseFloat((v / contaValor * 100).toFixed(2)) : 0;
+      input.max = 100;
+      input.step = '0.1';
+    }
+  });
+  envolvidosMode = mode;
+  document.getElementById('mode-btn-pct').classList.toggle('active', mode === 'pct');
+  document.getElementById('mode-btn-val').classList.toggle('active', mode === 'val');
+  // atualiza sufixo nos itens
+  document.querySelectorAll('.env-suffix').forEach(el => { el.textContent = mode === 'pct' ? '%' : 'R$'; });
+  updateEnvTotal(false);
+};
+
 window.openEnvolvidosContaModal = function(blocoId, contaId) {
+  envolvidosMode = 'pct';
+  document.getElementById('mode-btn-pct').classList.add('active');
+  document.getElementById('mode-btn-val').classList.remove('active');
   document.getElementById('env-bloco-id').value = blocoId;
   document.getElementById('env-conta-id').value = contaId;
   const b = blocos.find(x => x.id === blocoId);
   const c = (b?.contas||[]).find(x => x.id === contaId);
+  document.getElementById('env-conta-valor').value = c?.valor || 0;
   const envs = c?.envolvidos || [];
   const picker = document.getElementById('envolvidos-picker');
   if (!pessoas.length) {
@@ -875,88 +916,102 @@ window.openEnvolvidosContaModal = function(blocoId, contaId) {
     const tipoBadge = (p.tipo||2) === 1 ? '· Individual' : '· Família';
     return `
       <div class="envolvido-pick">
-        <input type="checkbox" id="pick-${p.id}" ${e ? 'checked' : ''} onchange="updatePctTotal(true)">
+        <input type="checkbox" id="pick-${p.id}" ${e ? 'checked' : ''} onchange="updateEnvTotal(true)">
         <label class="envolvido-pick-name" for="pick-${p.id}">${p.nome} <span style="color:var(--text3);font-size:0.75rem">${tipoBadge}</span></label>
-        <input type="number" min="0" max="100" step="0.1" id="pct-${p.id}" value="${e ? e.pct : 0}" oninput="updatePctTotal(false)"> %
+        <input type="number" min="0" max="100" step="0.1" id="pct-${p.id}" value="${e ? e.pct : 0}" oninput="updateEnvTotal(false)">
+        <span class="env-suffix" style="font-size:0.8rem;color:var(--text2);min-width:1.5rem">%</span>
       </div>
     `;
   }).join('');
-  updatePctTotal();
+  updateEnvTotal(false);
   document.getElementById('envolvidosModal').classList.remove('hidden');
 };
 
-window.updatePctTotal = function(autoRedistribute = false) {
-  let total = 0;
-  let marcados = 0;
+// mantém compatibilidade com chamadas antigas
+window.updatePctTotal = function(auto) { updateEnvTotal(auto); };
+
+function updateEnvTotal(autoRedistribute = false) {
+  const contaValor = parseFloat(document.getElementById('env-conta-valor')?.value || 0);
   const marcados_ids = [];
   pessoas.forEach(p => {
     const chk = document.getElementById(`pick-${p.id}`);
-    if (chk && chk.checked) {
-      marcados++;
-      marcados_ids.push(p.id);
-      total += parseFloat(document.getElementById(`pct-${p.id}`)?.value||0);
-    }
+    if (chk && chk.checked) marcados_ids.push(p.id);
   });
 
-  // se veio de um checkbox, redistribui automaticamente pelos pesos
   if (autoRedistribute && marcados_ids.length > 0) {
     const pesoTotal = marcados_ids.reduce((s, pid) => {
       const p = pessoas.find(x => x.id === pid);
       return s + (p?.tipo || 2);
     }, 0);
-    let acumulado = 0;
-    marcados_ids.forEach((pid, i) => {
-      const p = pessoas.find(x => x.id === pid);
-      const peso = p?.tipo || 2;
-      const pct = i === marcados_ids.length - 1
-        ? parseFloat((100 - acumulado).toFixed(2))
-        : parseFloat((peso / pesoTotal * 100).toFixed(2));
-      acumulado += pct;
-      const input = document.getElementById(`pct-${pid}`);
-      if (input) input.value = pct;
-    });
-    // zera os desmarcados
+    if (envolvidosMode === 'pct') {
+      let acum = 0;
+      marcados_ids.forEach((pid, i) => {
+        const p = pessoas.find(x => x.id === pid);
+        const peso = p?.tipo || 2;
+        const pct = i === marcados_ids.length - 1
+          ? parseFloat((100 - acum).toFixed(2))
+          : parseFloat((peso / pesoTotal * 100).toFixed(2));
+        acum += pct;
+        document.getElementById(`pct-${pid}`).value = pct;
+      });
+    } else {
+      let acum = 0;
+      marcados_ids.forEach((pid, i) => {
+        const p = pessoas.find(x => x.id === pid);
+        const peso = p?.tipo || 2;
+        const val = i === marcados_ids.length - 1
+          ? parseFloat((contaValor - acum).toFixed(2))
+          : parseFloat((peso / pesoTotal * contaValor).toFixed(2));
+        acum += val;
+        document.getElementById(`pct-${pid}`).value = val;
+      });
+    }
+    // zera desmarcados
     pessoas.forEach(p => {
       if (!marcados_ids.includes(p.id)) {
-        const input = document.getElementById(`pct-${p.id}`);
-        if (input) input.value = 0;
+        const inp = document.getElementById(`pct-${p.id}`);
+        if (inp) inp.value = 0;
       }
     });
-    total = 100;
   }
 
   const el = document.getElementById('pct-total-bar');
-  const val = document.getElementById('pct-total-val');
-  if (marcados_ids.length === 0) {
-    val.textContent = '0%';
+  const valEl = document.getElementById('pct-total-val');
+  const labelEl = document.getElementById('pct-total-label');
+
+  if (!marcados_ids.length) {
+    labelEl.textContent = 'Total';
+    valEl.textContent = envolvidosMode === 'pct' ? '0%' : 'R$ 0,00';
     el.className = 'pct-total bad';
-  } else if (Math.abs(total - 100) < 0.1) {
-    const pesoTotal = marcados_ids.reduce((s, pid) => {
-      const p = pessoas.find(x => x.id === pid);
-      return s + (p?.tipo || 2);
-    }, 0);
-    const info = marcados_ids.map(pid => {
-      const p = pessoas.find(x => x.id === pid);
-      return `${p?.nome||''}: ${((p?.tipo||2)/pesoTotal*100).toFixed(1)}%`;
-    }).join(' · ');
-    val.textContent = `100% — ${info}`;
-    el.className = 'pct-total ok';
-  } else {
-    val.textContent = total.toFixed(1) + '%';
-    el.className = 'pct-total ' + (Math.abs(total-100) < 0.01 ? 'ok' : 'bad');
+    return;
   }
-};
+
+  if (envolvidosMode === 'pct') {
+    const total = marcados_ids.reduce((s, pid) => s + parseFloat(document.getElementById(`pct-${pid}`)?.value || 0), 0);
+    labelEl.textContent = 'Total das porcentagens';
+    const ok = Math.abs(total - 100) < 0.1;
+    valEl.textContent = ok ? '100% ✓' : total.toFixed(1) + '%';
+    el.className = 'pct-total ' + (ok ? 'ok' : 'bad');
+  } else {
+    const total = marcados_ids.reduce((s, pid) => s + parseFloat(document.getElementById(`pct-${pid}`)?.value || 0), 0);
+    const ok = contaValor > 0 && Math.abs(total - contaValor) < 0.02;
+    labelEl.textContent = `Total (conta: ${fmtMoney(contaValor)})`;
+    valEl.textContent = fmtMoney(total) + (ok ? ' ✓' : '');
+    el.className = 'pct-total ' + (ok ? 'ok' : 'bad');
+  }
+}
 
 window.saveEnvolvidos = async function() {
   const { doc, updateDoc } = window._fb;
   const blocoId = document.getElementById('env-bloco-id').value;
   const contaId = document.getElementById('env-conta-id').value;
+  const contaValor = parseFloat(document.getElementById('env-conta-valor').value || 0);
   const selecionados = [];
   pessoas.forEach(p => {
     const chk = document.getElementById(`pick-${p.id}`);
     if (chk && chk.checked) {
-      const pct = parseFloat(document.getElementById(`pct-${p.id}`)?.value||0);
-      selecionados.push({ pessoaId: p.id, pct });
+      const raw = parseFloat(document.getElementById(`pct-${p.id}`)?.value || 0);
+      selecionados.push({ pessoaId: p.id, raw });
     }
   });
   if (!selecionados.length) {
@@ -967,34 +1022,48 @@ window.saveEnvolvidos = async function() {
     closeModal('envolvidosModal');
     return;
   }
-  const total = selecionados.reduce((s, e) => s + e.pct, 0);
+
   let envolvidos;
-  if (total === 0) {
-    // divide proporcionalmente ao peso de cada um
-    const pesoTotal = selecionados.reduce((s, e) => {
-      const p = pessoas.find(x => x.id === e.pessoaId);
-      return s + (p?.tipo || 2);
-    }, 0);
-    let acumulado = 0;
+  const totalRaw = selecionados.reduce((s, e) => s + e.raw, 0);
+
+  if (envolvidosMode === 'val') {
+    // converte valores para porcentagem
+    if (contaValor <= 0 || Math.abs(totalRaw - contaValor) > 0.05) {
+      showToast(`A soma dos valores deve ser ${fmtMoney(contaValor)}`, 'error'); return;
+    }
+    let acum = 0;
     envolvidos = selecionados.map((e, i) => {
-      const p = pessoas.find(x => x.id === e.pessoaId);
-      const peso = p?.tipo || 2;
       const pct = i === selecionados.length - 1
-        ? parseFloat((100 - acumulado).toFixed(4))
-        : parseFloat((peso / pesoTotal * 100).toFixed(4));
-      acumulado += pct;
+        ? parseFloat((100 - acum).toFixed(4))
+        : parseFloat((e.raw / contaValor * 100).toFixed(4));
+      acum += pct;
       return { pessoaId: e.pessoaId, pct };
     });
-    const info = selecionados.map(e => {
-      const p = pessoas.find(x => x.id === e.pessoaId);
-      return `${p?.nome||''} ${((p?.tipo||2)/pesoTotal*100).toFixed(1)}%`;
-    }).join(', ');
-    showToast(`Divisão por peso: ${info}`, 'success');
-  } else if (Math.abs(total - 100) > 0.1) {
-    showToast('A soma das porcentagens deve ser 100%', 'error'); return;
   } else {
-    envolvidos = selecionados;
+    // modo porcentagem
+    if (totalRaw === 0) {
+      // auto-divide por peso
+      const pesoTotal = selecionados.reduce((s, e) => {
+        const p = pessoas.find(x => x.id === e.pessoaId);
+        return s + (p?.tipo || 2);
+      }, 0);
+      let acum = 0;
+      envolvidos = selecionados.map((e, i) => {
+        const p = pessoas.find(x => x.id === e.pessoaId);
+        const peso = p?.tipo || 2;
+        const pct = i === selecionados.length - 1
+          ? parseFloat((100 - acum).toFixed(4))
+          : parseFloat((peso / pesoTotal * 100).toFixed(4));
+        acum += pct;
+        return { pessoaId: e.pessoaId, pct };
+      });
+    } else if (Math.abs(totalRaw - 100) > 0.1) {
+      showToast('A soma das porcentagens deve ser 100%', 'error'); return;
+    } else {
+      envolvidos = selecionados.map(e => ({ pessoaId: e.pessoaId, pct: e.raw }));
+    }
   }
+
   const b = blocos.find(x => x.id === blocoId);
   const contas = (b?.contas||[]).map(c => c.id === contaId ? { ...c, envolvidos } : c);
   await updateDoc(doc(db, 'blocos', blocoId), { contas });
